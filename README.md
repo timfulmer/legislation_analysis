@@ -25,3 +25,4 @@ Full implementation is found in `analyze.go`.
 1. Include Bill name and sponsor information in the data set.
 1. Include Congressional map data, to relate user location to bill sponsors.
 1. Show data related user's elected congresspeople in chat conversation.
+1. Dynamically pull congressional legislation database from https://govinfo.gov.
