@@ -25,7 +25,7 @@ func main() {
 	var connectionMetadata = gcp.ConnectionMetadata{Host: os.Getenv("POSTGRES_HOST"), Port: port,
 		User: os.Getenv("POSTGRES_USER"), Password: os.Getenv("POSTGRES_PASSWORD"),
 		Database: os.Getenv("POSTGRES_DATABASE")}
-	err = gcp.PersistLegislativeItems(connectionMetadata, legislativeItems)
+	err = gcp.PersistLegislativeItemsToCloudSql(connectionMetadata, legislativeItems)
 	if err != nil {
 		panic(err)
 	}

@@ -3,32 +3,40 @@ package gcp
 import (
 	"database/sql"
 	"fmt"
-	_ "github.com/lib/pq"
+	_ "github.com/GoogleCloudPlatform/cloudsql-proxy/proxy/dialers/postgres"
 	"legislation_analysis/analyze"
 	"log"
 	"time"
 )
 
-type ConnectionMetadata struct {
-	Host     string
-	Port     int
-	User     string
-	Password string
-	Database string
-}
+func openSqlDb(connection ConnectionMetadata) (*sql.DB, error) {
 
-func PersistLegislativeItems(connection ConnectionMetadata, legislativeItems []analyze.LegislationItem) error {
-	log.Println("Persisting legislative items")
-	startTime := time.Now()
+	// TODO: switch for local v gae
+
 	postgresInfo := fmt.Sprintf("host=%s port=%d user=%s "+
 		"password=%s dbname=%s sslmode=disable",
 		connection.Host, connection.Port, connection.User, connection.Password, connection.Database)
-	db, err := sql.Open("postgres", postgresInfo)
+	db, err := sql.Open("cloudsqlpostgres", postgresInfo)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	err = db.Ping()
+	if err != nil {
+		return nil, err
+	}
+
+	//noinspection GoUnhandledErrorResult
+	defer db.Close()
+
+	return db, nil
+}
+
+func PersistLegislativeItemsToCloudSql(connection ConnectionMetadata, legislativeItems []analyze.LegislationItem) error {
+	log.Println("Persisting legislative items")
+	startTime := time.Now()
+
+	db, err := openSqlDb(connection)
 	if err != nil {
 		return err
 	}
@@ -41,19 +49,11 @@ func PersistLegislativeItems(connection ConnectionMetadata, legislativeItems []a
 
 	var totalCount = 0
 	for i := range legislativeItems {
-		totalCount += legislativeItems[i].Count
-	}
-	for i := range legislativeItems {
 		insert := "INSERT INTO legislative_item (legislative_text,incidence_count,total_incidence_count) VALUES ($1,$2,$3)"
 		_, err = db.Exec(insert, legislativeItems[i].Text, legislativeItems[i].Count, totalCount)
 		if err != nil {
 			return err
 		}
-	}
-
-	err = db.Close()
-	if err != nil {
-		return err
 	}
 	executionTime := time.Since(startTime)
 	log.Printf("Persistence took %s\n", executionTime)
@@ -61,18 +61,11 @@ func PersistLegislativeItems(connection ConnectionMetadata, legislativeItems []a
 	return nil
 }
 
-func SearchLegislativeItems(connection ConnectionMetadata, searchTerm string) ([]analyze.LegislationItem, error) {
+func SearchLegislativeItemsInCloudSql(connection ConnectionMetadata, searchTerm string) ([]analyze.LegislationItem, error) {
 	log.Println("Searching legislative items")
 	startTime := time.Now()
-	postgresInfo := fmt.Sprintf("host=%s port=%d user=%s "+
-		"password=%s dbname=%s sslmode=disable",
-		connection.Host, connection.Port, connection.User, connection.Password, connection.Database)
-	db, err := sql.Open("postgres", postgresInfo)
-	if err != nil {
-		return nil, err
-	}
 
-	err = db.Ping()
+	db, err := openSqlDb(connection)
 	if err != nil {
 		return nil, err
 	}
@@ -90,7 +83,8 @@ func SearchLegislativeItems(connection ConnectionMetadata, searchTerm string) ([
 		if err := rows.Scan(&text, &count, &total); err != nil {
 			return nil, err
 		}
-		legislationItems = append(legislationItems, analyze.LegislationItem{text, count, []string{}, []string{}, total})
+		legislationItems = append(legislationItems, analyze.LegislationItem{Text: text, Count: count,
+			Bills: []string{}, Sponsors: []string{}, TotalCount: total})
 	}
 	executionTime := time.Since(startTime)
 	log.Printf("Searching took %s\n", executionTime)
