@@ -26,3 +26,55 @@ Full implementation is found in `analyze.go`.
 1. Include Congressional map data, to relate user location to bill sponsors.
 1. Show data related user's elected congresspeople in chat conversation.
 1. Dynamically pull congressional legislation database from https://govinfo.gov.
+
+## Setup
+
+1. Install go:
+
+    ```
+    brew install go
+    ```
+
+1. Install Google Cloud SDK:
+
+    ```
+    brew tap caskroom/cask
+    brew cask install google-cloud-sdk
+    ```
+
+1. Add variables to environment:
+
+    ```
+    export GOPATH="${HOME}/.go"
+    export GOROOT="$(brew --prefix golang)/libexec"
+    export PATH="$PATH:${GOPATH}/bin:${GOROOT}/bin
+    source '/usr/local/Caskroom/google-cloud-sdk/latest/google-cloud-sdk/path.bash.inc'
+    source '/usr/local/Caskroom/google-cloud-sdk/latest/google-cloud-sdk/completion.bash.inc'
+    ```
+
+1. Setup local App Engine emulation, enter `Y` to install: 
+
+    ```
+    dev_appserver.py
+    ```
+
+1. Install this repository to your local Go project:
+
+    ```
+    go get github.com/timfulmer/legislation_analysis
+    ```
+
+1. Install App Engine dependencies:
+
+    ```
+    go get -u google.golang.org/appengine/...
+    ```
+
+1. Run the local App Engine emulator to install the supporting packages, enter `Y` to install:
+
+    ```
+    dev_appserver.py ./app.yaml
+    ```
+
+1. Install GoLand for IDE
+1. Open the project in GoLand and happy coding!
